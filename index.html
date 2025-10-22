@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Flappy Pumpkin - Halloween Edition</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom, #000000, #2c1810); /* Fundo escuro com tom de Halloween */
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iI2ZmZmZmZiIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjUiLz48L3N2Zz4=') repeat; /* Lua cheia simples */
+            background-size: 50px 50px;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #ff6b35; /* Laranja Halloween */
+            font-size: 24px;
+            font-weight: bold;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff0000;
+            font-size: 36px;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Pontuação: 0</div>
+    <div id="gameOver">Game Over! Clique para reiniciar</div>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score');
+        const gameOverDisplay = document.getElementById('gameOver');
+
+        let bird = { x: 50, y: 300, velocity: 0, gravity: 0.6, jump: -12 };
+        let pipes = [];
+        let score = 0;
+        let gameRunning = true;
+
+        // Função para desenhar a abóbora (pássaro)
+        function drawBird() {
+            ctx.fillStyle = '#ff6b35'; // Laranja
+            ctx.beginPath();
+            ctx.arc(bird.x, bird.y, 15, 0, Math.PI * 2);
+            ctx.fill();
+            // Olhos e boca para parecer uma abóbora
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(bird.x - 5, bird.y - 5, 2, 0, Math.PI * 2);
+            ctx.arc(bird.x + 5, bird.y - 5, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(bird.x, bird.y + 5, 3, 0, Math.PI);
+            ctx.fill();
+        }
+
+        // Função para desenhar os canos (fantasmas)
+        function drawPipes() {
+            pipes.forEach(pipe => {
+                // Cano superior (fantasma)
+                ctx.fillStyle = '#ffffff'; // Branco fantasma
+                ctx.fillRect(pipe.x, 0, 50, pipe.topHeight);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(pipe.x + 10, pipe.topHeight - 20, 30, 10); // Olhos
+                ctx.fillRect(pipe.x + 15, pipe.topHeight - 10, 20, 5); // Boca
+
+                // Cano inferior
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(pipe.x, canvas.height - pipe.bottomHeight, 50, pipe.bottomHeight);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(pipe.x + 10, canvas.height - pipe.bottomHeight + 10, 30, 10);
+                ctx.fillRect(pipe.x + 15, canvas.height - pipe.bottomHeight + 20, 20, 5);
+            });
+        }
+
+        // Atualizar jogo
+        function update() {
+            if (!gameRunning) return;
+
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+
+            // Verificar colisão com chão/teto
+            if (bird.y > canvas.height - 15 || bird.y < 15) {
+                gameOver();
+            }
+
+            // Mover canos
+            pipes.forEach(pipe => {
+                pipe.x -= 2;
+                if (pipe.x + 50 < 0) {
+                    pipes.shift();
+                    score++;
+                    scoreDisplay.textContent = `Pontuação: ${score}`;
+                }
+                // Verificar colisão
+                if (bird.x + 15 > pipe.x && bird.x - 15 < pipe.x + 50 &&
+                    (bird.y - 15 < pipe.topHeight || bird.y + 15 > canvas.height - pipe.bottomHeight)) {
+                    gameOver();
+                }
+            });
+
+            // Adicionar novos canos
+            if (pipes.length === 0 || pipes[pipes.length - 1].x < 250) {
+                let topHeight = Math.random() * 200 + 50;
+                pipes.push({ x: canvas.width, topHeight, bottomHeight: canvas.height - topHeight - 150 });
+            }
+        }
+
+        // Desenhar tudo
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBird();
+            drawPipes();
+        }
+
+        // Loop do jogo
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Pulo ao clicar
+        canvas.addEventListener('click', () => {
+            if (gameRunning) {
+                bird.velocity = bird.jump;
+            } else {
+                resetGame();
+            }
+        });
+
+        // Game Over
+        function gameOver() {
+            gameRunning = false;
+            gameOverDisplay.style.display = 'block';
+        }
+
+        // Reiniciar
+        function resetGame() {
+            bird.y = 300;
+            bird.velocity = 0;
+            pipes = [];
+            score = 0;
+            scoreDisplay.textContent = 'Pontuação: 0';
+            gameOverDisplay.style.display = 'none';
+            gameRunning = true;
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
