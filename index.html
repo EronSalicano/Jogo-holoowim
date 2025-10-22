@@ -7,7 +7,7 @@
         body {
             margin: 0;
             padding: 0;
-            background: linear-gradient(to bottom, #000000, #2c1810); /* Fundo escuro com tom de Halloween */
+            background: linear-gradient(to bottom, #052261, #000000); /* Fundo escuro com tom de Halloween */
             font-family: Arial, sans-serif;
             overflow: hidden;
         }
@@ -48,7 +48,7 @@
         const scoreDisplay = document.getElementById('score');
         const gameOverDisplay = document.getElementById('gameOver');
 
-        let bird = { x: 50, y: 300, velocity: 0, gravity: 0.6, jump: -12 };
+        let bird = { x: 50, y: 300, velocity: 5, gravity: 0.4 , jump: -8 };
         let pipes = [];
         let score = 0;
         let gameRunning = true;
