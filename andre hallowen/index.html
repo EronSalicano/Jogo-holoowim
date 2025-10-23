@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Flappy Pumpkin - Halloween Edition</title>
+    <style>
+        body {
+            margin: 100px, 200px;
+            padding: 0;
+            background: linear-gradient(to bottom, #610505, #ea00ff);
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh
+        }
+        canvas {
+            display: block;
+            background-size: 50px 50px;
+            border: 2px solid #ff6b35;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #ff6b35;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px black;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff0000;
+            font-size: 36px;
+            text-align: center;
+            display: none;
+            text-shadow: 2px 2px 4px black;
+        }
+        #startScreen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff6b35;
+            font-size: 24px;
+            text-align: center;
+            text-shadow: 1px 1px 2px black;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Pontuação: 0</div>
+    <div id="gameOver">Game Over! Clique para reiniciar</div>
+    <div id="startScreen">Clique para começar!</div>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+    <script>
+        // Configurações do jogo
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score');
+        const gameOverDisplay = document.getElementById('gameOver');
+        const startScreen = document.getElementById('startScreen');
+        
+        // Carregar imagem do morcego
+        const batImage = new Image();
+        batImage.src = 'morcego-imagem-animada-0050.gif';
+        
+        // Variáveis do jogo
+        let gameRunning = false;
+        let score = 0;
+        let pipes = [];
+        
+        // Morcego
+        const bat = {
+            x: 50,
+            y: 300,
+            width: 30,
+            height: 20,
+            velocity: 0,
+            gravity: 0.5,
+            jump: -8
+        };
+        
+        // Função para desenhar o morcego
+        function drawBat() {
+            // Se a imagem estiver carregada, use-a, senão desenhe um retângulo
+            if (batImage.complete) {
+                ctx.drawImage(batImage, bat.x - bat.width/2, bat.y - bat.height/2, bat.width, bat.height);
+            } else {
+                // Desenho de fallback caso a imagem não carregue
+                ctx.fillStyle = '#333';
+                ctx.beginPath();
+                ctx.ellipse(bat.x, bat.y, bat.width/2, bat.height/2, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Asas
+                ctx.fillStyle = '#222';
+                ctx.beginPath();
+                ctx.ellipse(bat.x - 10, bat.y, 15, 8, 0, 0, Math.PI * 2);
+                ctx.ellipse(bat.x + 10, bat.y, 15, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Olhos
+                ctx.fillStyle = '#ff6b35';
+                ctx.beginPath();
+                ctx.arc(bat.x - 5, bat.y - 3, 2, 0, Math.PI * 2);
+                ctx.arc(bat.x + 5, bat.y - 3, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // Função para desenhar os canos (fantasmas)
+        function drawPipes() {
+            pipes.forEach(pipe => {
+                // Cano superior (fantasma)
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(pipe.x, 0, 50, pipe.topHeight);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(pipe.x + 10, pipe.topHeight - 20, 30, 10); // Olhos
+                ctx.fillRect(pipe.x + 15, pipe.topHeight - 10, 20, 5); // Boca
+
+                // Cano inferior
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(pipe.x, canvas.height - pipe.bottomHeight, 50, pipe.bottomHeight);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(pipe.x + 10, canvas.height - pipe.bottomHeight + 10, 30, 10);
+                ctx.fillRect(pipe.x + 15, canvas.height - pipe.bottomHeight + 20, 20, 5);
+            });
+        }
+
+        // Atualizar jogo
+        function update() {
+            if (!gameRunning) return;
+
+            // Física do morcego
+            bat.velocity += bat.gravity;
+            bat.y += bat.velocity;
+
+            // Verificar colisão com chão/teto
+            if (bat.y + bat.height/2 > canvas.height || bat.y - bat.height/2 < 0) {
+                gameOver();
+            }
+
+            // Mover canos
+            pipes.forEach(pipe => {
+                pipe.x -= 2;
+                if (pipe.x + 50 < 0) {
+                    pipes.shift();
+                    score++;
+                    scoreDisplay.textContent = `Pontuação: ${score}`;
+                }
+                
+                // Verificar colisão com os canos
+                if (bat.x + bat.width/2 > pipe.x && bat.x - bat.width/2 < pipe.x + 50 &&
+                    (bat.y - bat.height/2 < pipe.topHeight || bat.y + bat.height/2 > canvas.height - pipe.bottomHeight)) {
+                    gameOver();
+                }
+            });
+
+            // Adicionar novos canos
+            if (pipes.length === 0 || pipes[pipes.length - 1].x < 250) {
+                let topHeight = Math.random() * 200 + 50;
+                pipes.push({ 
+                    x: canvas.width, 
+                    topHeight, 
+                    bottomHeight: canvas.height - topHeight - 150 
+                });
+            }
+        }
+
+        // Desenhar tudo
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBat();
+            drawPipes();
+        }
+
+        // Loop do jogo
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Pulo ao clicar
+        canvas.addEventListener('click', () => {
+            if (gameRunning) {
+                bat.velocity = bat.jump;
+            } else {
+                resetGame();
+            }
+        });
+
+        // Iniciar jogo
+        function startGame() {
+            gameRunning = true;
+            startScreen.style.display = 'none';
+        }
+
+        // Game Over
+        function gameOver() {
+            gameRunning = false;
+            gameOverDisplay.style.display = 'block';
+        }
+
+        // Reiniciar
+        function resetGame() {
+            bat.y = 300;
+            bat.velocity = 0;
+            pipes = [];
+            score = 0;
+            scoreDisplay.textContent = 'Pontuação: 0';
+            gameOverDisplay.style.display = 'none';
+            startScreen.style.display = 'none';
+            gameRunning = true;
+        }
+
+        // Primeiro clique para iniciar
+        canvas.addEventListener('click', () => {
+            if (!gameRunning && startScreen.style.display !== 'none') {
+                startGame();
+            }
+        });
+
+        // Iniciar loop do jogo
+        gameLoop();
+    </script>
+</body>
+</html>
